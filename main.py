@@ -1,8 +1,13 @@
 import sqlite3
 import os
+import json
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.constants import ParseMode
 from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandler, ContextTypes
+
+# Load config
+with open('config.json', 'r') as config_file:
+    config = json.load(config_file)
 
 # Database setup
 conn = sqlite3.connect('7x_currency.db')
@@ -190,8 +195,8 @@ async def refresh_balance(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
 
 # Main function
 def main():
-    # Use environment variable for the bot token
-    TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
+    # Use config file for the bot token
+    TOKEN = config["TELEGRAM_BOT_TOKEN"]
     application = ApplicationBuilder().token(TOKEN).build()
 
     application.add_handler(CommandHandler("start", start))
