@@ -7,8 +7,8 @@ SevenX is a virtual currency for Telegram that allows users to send and receive 
 - **Send and Receive SevenX**: Easily send SevenX tokens to other users on Telegram.
 - **Check Balance**: Quickly check your SevenX balance with a simple command.
 - **Transaction History**: View your recent transactions.
-- **Top Up**: Add SevenX to your account using supported methods.
-- **Withdraw**: Withdraw your SevenX to an external wallet.
+- **Top Up**: Claim 5 free SevenX every week.
+- **Request SevenX**: Request SevenX from other users.
 
 ## Getting Started
 
@@ -21,8 +21,8 @@ SevenX is a virtual currency for Telegram that allows users to send and receive 
 
 1. Clone the repository:
     ```sh
-    git clone https://github.com/yourusername/SevenX-Telegram-Bot.git
-    cd SevenX-Telegram-Bot
+    git clone https://github.com/GabrielWasTaken/SevenX.git
+    cd SevenX
     ```
 
 2. Install the required dependencies:
@@ -31,24 +31,23 @@ SevenX is a virtual currency for Telegram that allows users to send and receive 
     ```
 
 3. Configure the bot:
-    - Rename `config.example.json` to `config.json`.
-    - Fill in your Telegram Bot API key and other necessary configurations in `config.json`.
+    - Fill in your Telegram Bot API key in `config.json`.
 
 ### Usage
 
 1. Start the bot:
     ```sh
-    python bot.py
+    python main.py
     ```
 
 2. Interact with the bot on Telegram using the commands:
 
     - `/start` - Start the bot and initialize your wallet.
     - `/balance` - Check your SevenX balance.
-    - `/send <amount> <username>` - Send SevenX to another user.
+    - `/pay <username> <amount>` - Send SevenX to another user.
     - `/history` - View your transaction history.
-    - `/topup` - Get instructions on how to add more SevenX to your account.
-    - `/withdraw <amount> <wallet_address>` - Withdraw SevenX to an external wallet.
+    - `/claim` - Claim 5 free SevenX every week.
+    - `/request <username> <amount>` - Request SevenX to another user.
 
 ## Contributing
 
@@ -66,7 +65,7 @@ This project is licensed under the GNU General Public License. See the [LICENSE]
 
 ## Support
 
-If you encounter any issues or have any questions, feel free to open an issue on GitHub or contact us at support@archmc.es.
+If you encounter any issues or have any questions, feel free to open an issue.
 
 ## Donations
 
