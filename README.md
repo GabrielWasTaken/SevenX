@@ -1,6 +1,6 @@
 # SevenX Telegram Bot
 
-<img src="assets/banner.png" alt="SevenX Logo" width="700"/>
+<img src="assets/Banner.png" alt="SevenX Logo" width="700"/>
 
 SevenX is a virtual currency for Telegram that allows users to send and receive tokens seamlessly within the Telegram ecosystem. This bot facilitates the usage of SevenX, making transactions and account management simple and efficient.
 
