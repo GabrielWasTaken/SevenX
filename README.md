@@ -23,7 +23,7 @@ SevenX is a virtual currency for Telegram that allows users to send and receive 
 
 1. Clone the repository:
     ```sh
-    git clone https://github.com/GabrielWasTaken/SevenX.git
+    git clone https://github.com/GabrielWasTaken/SevenX
     cd SevenX
     ```
 
