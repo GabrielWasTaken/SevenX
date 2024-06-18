@@ -89,7 +89,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     username = update.message.from_user.username
     chat_id = update.message.chat_id
     store_user_chat_id(username, chat_id)
-    await update.message.reply_text('Welcome to the 7x Currency Bot!')
+    await update.message.reply_text('Welcome to the SevenX Currency Bot!')
 
 async def pay(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     username = update.message.from_user.username
@@ -117,7 +117,7 @@ async def pay(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
 
-    await update.message.reply_text(f'Confirm payment of {amount} 7x to {receiver}?',
+    await update.message.reply_text(f'Confirm payment of {amount} SevenX to {receiver}?',
                                     reply_markup=reply_markup)
 
 async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -130,7 +130,7 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
 
     if action == 'confirm':
         sender, receiver, amount = get_pending_transaction(trans_id)
-        print(f"Transaction confirmed: {sender} pays {receiver} {amount} 7x")  # Debugging line
+        print(f"Transaction confirmed: {sender} pays {receiver} {amount} SevenX")  # Debugging line
         update_balance(sender, -amount)
         print(f"Balance updated for sender {sender}")  # Debugging line
         update_balance(receiver, amount)
@@ -139,14 +139,14 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         delete_pending_transaction(trans_id)
 
         await context.bot.send_message(chat_id=query.message.chat_id,
-                                       text=f'Payment of {amount} 7x to {receiver} confirmed!\nTransaction details:\nSender: {sender}\nReceiver: {receiver}\nAmount: {amount} 7x',
+                                       text=f'Payment of {amount} SevenX to {receiver} confirmed!\nTransaction details:\nSender: {sender}\nReceiver: {receiver}\nAmount: {amount} SevenX',
                                        parse_mode=ParseMode.MARKDOWN)
 
         # Send a message to the receiver
         receiver_chat_id = get_user_chat_id(receiver)
         if receiver_chat_id:
             await context.bot.send_message(chat_id=receiver_chat_id,
-                                           text=f'You have received a payment of {amount} 7x from {sender}.\nTransaction details:\nSender: {sender}\nAmount: {amount} 7x')
+                                           text=f'You have received a payment of {amount} SevenX from {sender}.\nTransaction details:\nSender: {sender}\nAmount: {amount} SevenX')
 
     elif action == 'cancel':
         delete_pending_transaction(trans_id)
@@ -158,7 +158,7 @@ async def balance(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     store_user_chat_id(username, chat_id)
 
     balance = get_balance(username)
-    await update.message.reply_text(f'Your balance is {balance} 7x.')
+    await update.message.reply_text(f'Your balance is {balance} SevenX.')
 
 async def claim(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     username = update.message.from_user.username
@@ -167,9 +167,9 @@ async def claim(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
     if get_balance(username) == 0:
         update_balance(username, 50)
-        await update.message.reply_text('Claimed 50 7x!')
+        await update.message.reply_text('Claimed 50 SevenX!')
     else:
-        await update.message.reply_text('You have already claimed your 50 7x!')
+        await update.message.reply_text('You have already claimed your 50 SevenX!')
 
 async def request(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     username = update.message.from_user.username
@@ -184,7 +184,7 @@ async def request(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     target, amount = context.args
     amount = int(amount)
 
-    await context.bot.send_message(chat_id=update.effective_chat.id, text=f'{target}, {requester} is requesting {amount} 7x from you!')
+    await context.bot.send_message(chat_id=update.effective_chat.id, text=f'This command is not longer working and will be removed in future versions of the bot')
 
 async def refresh_balance(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     username = update.message.from_user.username
