@@ -74,6 +74,7 @@ If you encounter any issues or have any questions, feel free to open an issue.
 If you would like to support the development of the SevenX Telegram bot, you can send Nano (XNO) and Banano (BAN) donations to the following address:
 
 **Nano (XNO) Donation Address**: `nano_18k48z84medbxyd4hzbibu86ibfhc3mi5cpshoxedbtkmryokwa1ags3pyhy`
+
 **Banano (BAN) Donation Address**: `ban_3dgdgzh87s3zdppinfkx1srytrhjkw36rkxrk96yecbkfsm991uzxji7y4f6`
 
 Thank you for your support!
