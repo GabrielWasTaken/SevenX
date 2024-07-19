@@ -12,6 +12,10 @@ SevenX is a virtual currency for Telegram that allows users to send and receive 
 - **Top Up**: Claim 5 free SevenX every week.
 - **Request SevenX**: Request SevenX from other users.
 
+## Official Telegram Bot
+
+You can use the official Telegram bot at https://t.me/SevenXC_bot
+
 ## Getting Started
 
 ### Prerequisites
@@ -50,6 +54,12 @@ SevenX is a virtual currency for Telegram that allows users to send and receive 
     - `/history` - View your transaction history.
     - `/claim` - Claim 5 free SevenX every week.
     - `/request <username> <amount>` - Request SevenX to another user.
+
+### Branding
+
+If you want to make a fork please use another name and don't claim that your bot is the official SevenX bot.
+
+Consider contributing to the official SevenX bot instead of making a fork. If you don't like something feel free to open an issue.
 
 ## Contributing
 
