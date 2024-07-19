@@ -55,7 +55,7 @@ You can use the official Telegram bot at https://t.me/SevenXC_bot
     - `/claim` - Claim 5 free SevenX every week.
     - `/request <username> <amount>` - Request SevenX to another user.
 
-### Branding
+### Forks
 
 If you want to make a fork please use another name and don't claim that your bot is the official SevenX bot.
 
