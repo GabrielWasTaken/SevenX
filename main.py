@@ -17,7 +17,8 @@ c = conn.cursor()
 c.execute('''
     CREATE TABLE IF NOT EXISTS users (
         username TEXT PRIMARY KEY,
-        balance INTEGER DEFAULT 0
+        balance INTEGER DEFAULT 0,
+        email TEXT
     )
 ''')
 c.execute('''
@@ -84,6 +85,14 @@ def get_user_chat_id(username):
     result = c.fetchone()
     return result[0] if result else None
 
+def set_email(username, email):
+    c.execute('UPDATE users SET email = ? WHERE username = ?', (email, username))
+    conn.commit()
+
+def get_user_info(username):
+    c.execute('SELECT username, balance, email FROM users WHERE username = ?', (username,))
+    return c.fetchone()
+
 # Command handlers
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     username = update.message.from_user.username
@@ -131,14 +140,12 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
 
     if action == 'confirm':
         sender, receiver, amount = get_pending_transaction(trans_id)
-        print(f"Transaction confirmed: {sender} pays {receiver} {amount} SevenX")  # Debugging line
         update_balance(sender, -amount)
-        print(f"Balance updated for sender {sender}")  # Debugging line
         update_balance(receiver, amount)
-        print(f"Balance updated for receiver {receiver}")  # Debugging line
         record_transaction(sender, receiver, amount)
         delete_pending_transaction(trans_id)
 
+        await context.bot.delete_message(chat_id=query.message.chat_id, message_id=query.message.message_id)
         await context.bot.send_message(chat_id=query.message.chat_id,
                                        text=f'Payment of {amount} SevenX to {receiver} confirmed!\nTransaction details:\nSender: {sender}\nReceiver: {receiver}\nAmount: {amount} SevenX',
                                        parse_mode=ParseMode.MARKDOWN)
@@ -151,6 +158,7 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
 
     elif action == 'cancel':
         delete_pending_transaction(trans_id)
+        await context.bot.delete_message(chat_id=query.message.chat_id, message_id=query.message.message_id)
         await context.bot.send_message(chat_id=query.message.chat_id, text='Payment canceled!')
 
 async def balance(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -167,10 +175,10 @@ async def claim(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     store_user_chat_id(username, chat_id)
 
     if get_balance(username) == 0:
-        update_balance(username, 1)
-        await update.message.reply_text('Claimed 1 SevenX!')
+        update_balance(username, 50)
+        await update.message.reply_text('Claimed 50 SevenX!')
     else:
-        await update.message.reply_text('You have already claimed your free SevenX!')
+        await update.message.reply_text('You have already claimed your 50 SevenX!')
 
 async def request(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     username = update.message.from_user.username
@@ -231,9 +239,33 @@ async def burn(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     update_balance(username, -amount)
     await update.message.reply_text(f'Burned {amount} SevenX!')
 
+async def lookup(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    if len(context.args) != 1:
+        await update.message.reply_text("Usage: /lookup <username>")
+        return
+
+    target_username = context.args[0].lstrip('@')  # Eliminar el "@" si está presente
+    user_info = get_user_info(target_username)
+
+    if user_info:
+        username, balance, email = user_info
+        await update.message.reply_text(f"User: {username}\nBalance: {balance} SevenX\nEmail: {email or 'No email linked'}")
+    else:
+        await update.message.reply_text("User not found.")
+
+async def link_email(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    if len(context.args) != 1:
+        await update.message.reply_text("Usage: /link_email <email>")
+        return
+
+    email = context.args[0]
+    username = update.message.from_user.username
+    set_email(username, email)
+    await update.message.reply_text(f"Email {email} linked to your account.")
+
 # Main function
 def main():
-    # Use config file for the bot token
+    # Use config file for the bot token and authorized user
     TOKEN = config["TELEGRAM_BOT_TOKEN"]
     application = ApplicationBuilder().token(TOKEN).build()
 
@@ -245,6 +277,8 @@ def main():
     application.add_handler(CommandHandler("refresh", refresh_balance))
     application.add_handler(CommandHandler("mint", mint))
     application.add_handler(CommandHandler("burn", burn))
+    application.add_handler(CommandHandler("lookup", lookup))
+    application.add_handler(CommandHandler("link_email", link_email))
     application.add_handler(CallbackQueryHandler(handle_callback))
 
     application.run_polling()
