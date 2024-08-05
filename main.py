@@ -167,10 +167,10 @@ async def claim(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     store_user_chat_id(username, chat_id)
 
     if get_balance(username) == 0:
-        update_balance(username, 50)
-        await update.message.reply_text('Claimed 50 SevenX!')
+        update_balance(username, 1)
+        await update.message.reply_text('Claimed 1 SevenX!')
     else:
-        await update.message.reply_text('You have already claimed your 50 SevenX!')
+        await update.message.reply_text('You have already claimed your free SevenX!')
 
 async def request(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     username = update.message.from_user.username
