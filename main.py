@@ -1,6 +1,7 @@
 import sqlite3
 import os
 import json
+from datetime import datetime
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.constants import ParseMode
 from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandler, ContextTypes
@@ -17,8 +18,7 @@ c = conn.cursor()
 c.execute('''
     CREATE TABLE IF NOT EXISTS users (
         username TEXT PRIMARY KEY,
-        balance INTEGER DEFAULT 0,
-        email TEXT
+        balance INTEGER DEFAULT 0
     )
 ''')
 c.execute('''
@@ -58,10 +58,12 @@ def update_balance(username, amount):
     else:
         c.execute('UPDATE users SET balance = balance + ? WHERE username = ?', (amount, username))
     conn.commit()
+    save_balances()
 
 def record_transaction(sender, receiver, amount):
     c.execute('INSERT INTO transactions (sender, receiver, amount) VALUES (?, ?, ?)', (sender, receiver, amount))
     conn.commit()
+    save_transactions()
 
 def store_pending_transaction(sender, receiver, amount):
     c.execute('INSERT INTO pending_transactions (sender, receiver, amount) VALUES (?, ?, ?)', (sender, receiver, amount))
@@ -85,13 +87,15 @@ def get_user_chat_id(username):
     result = c.fetchone()
     return result[0] if result else None
 
-def set_email(username, email):
-    c.execute('UPDATE users SET email = ? WHERE username = ?', (email, username))
-    conn.commit()
+def save_balances():
+    with open('balances.txt', 'w') as f:
+        for row in c.execute('SELECT username, balance FROM users'):
+            f.write(f'{row[0]}: {row[1]} SevenX\n')
 
-def get_user_info(username):
-    c.execute('SELECT username, balance, email FROM users WHERE username = ?', (username,))
-    return c.fetchone()
+def save_transactions():
+    with open('transactions.txt', 'w') as f:
+        for row in c.execute('SELECT sender, receiver, amount, timestamp FROM transactions'):
+            f.write(f'{row[0]} -> {row[1]}: {row[2]} SevenX at {row[3]}\n')
 
 # Command handlers
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -244,24 +248,15 @@ async def lookup(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         await update.message.reply_text("Usage: /lookup <username>")
         return
 
-    target_username = context.args[0].lstrip('@')  # Eliminar el "@" si está presente
-    user_info = get_user_info(target_username)
+    username = context.args[0].lstrip('@')  # Eliminar el "@" si está presente
+    c.execute('SELECT balance FROM users WHERE username = ?', (username,))
+    result = c.fetchone()
 
-    if user_info:
-        username, balance, email = user_info
-        await update.message.reply_text(f"User: {username}\nBalance: {balance} SevenX\nEmail: {email or 'No email linked'}")
+    if result:
+        balance = result[0]
+        await update.message.reply_text(f"User: {username}\nBalance: {balance} SevenX")
     else:
         await update.message.reply_text("User not found.")
-
-async def link_email(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    if len(context.args) != 1:
-        await update.message.reply_text("Usage: /link_email <email>")
-        return
-
-    email = context.args[0]
-    username = update.message.from_user.username
-    set_email(username, email)
-    await update.message.reply_text(f"Email {email} linked to your account.")
 
 # Main function
 def main():
@@ -278,7 +273,6 @@ def main():
     application.add_handler(CommandHandler("mint", mint))
     application.add_handler(CommandHandler("burn", burn))
     application.add_handler(CommandHandler("lookup", lookup))
-    application.add_handler(CommandHandler("link_email", link_email))
     application.add_handler(CallbackQueryHandler(handle_callback))
 
     application.run_polling()
