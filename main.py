@@ -46,9 +46,6 @@ c.execute('''
 conn.commit()
 
 # Helper functions
-def remove_at_symbol(username):
-    return username.lstrip('@')
-
 def get_balance(username):
     c.execute('SELECT balance FROM users WHERE username = ?', (username,))
     result = c.fetchone()
@@ -104,8 +101,9 @@ async def pay(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         return
 
     sender = update.message.from_user.username
-    receiver = remove_at_symbol(context.args[0])
-    amount = int(context.args[1])
+    receiver, amount = context.args
+    receiver = receiver.lstrip('@')  # Eliminar el "@" si está presente
+    amount = int(amount)
 
     if get_balance(sender) < amount:
         await update.message.reply_text('Insufficient balance!')
@@ -133,8 +131,11 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
 
     if action == 'confirm':
         sender, receiver, amount = get_pending_transaction(trans_id)
+        print(f"Transaction confirmed: {sender} pays {receiver} {amount} SevenX")  # Debugging line
         update_balance(sender, -amount)
+        print(f"Balance updated for sender {sender}")  # Debugging line
         update_balance(receiver, amount)
+        print(f"Balance updated for receiver {receiver}")  # Debugging line
         record_transaction(sender, receiver, amount)
         delete_pending_transaction(trans_id)
 
@@ -181,37 +182,10 @@ async def request(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         return
 
     requester = update.message.from_user.username
-    target = remove_at_symbol(context.args[0])
-    amount = int(context.args[1])
+    target, amount = context.args
+    amount = int(amount)
 
-    await context.bot.send_message(chat_id=update.effective_chat.id,
-                                   text=f'{requester} is requesting {amount} SevenX from {target}.')
-
-async def mint(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    if update.message.from_user.username != config['AUTHORIZED_USER']:
-        await update.message.reply_text('You are not authorized to use this command.')
-        return
-
-    if len(context.args) != 1:
-        await update.message.reply_text('Usage: /mint <amount>')
-        return
-
-    amount = int(context.args[0])
-    update_balance(update.message.from_user.username, amount)
-    await update.message.reply_text(f'Minted {amount} SevenX!')
-
-async def burn(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    if update.message.from_user.username != config['AUTHORIZED_USER']:
-        await update.message.reply_text('You are not authorized to use this command.')
-        return
-
-    if len(context.args) != 1:
-        await update.message.reply_text('Usage: /burn <amount>')
-        return
-
-    amount = int(context.args[0])
-    update_balance(update.message.from_user.username, -amount)
-    await update.message.reply_text(f'Burned {amount} SevenX!')
+    await context.bot.send_message(chat_id=update.effective_chat.id, text=f'This command is not longer working and will be removed in future versions of the bot')
 
 async def refresh_balance(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     username = update.message.from_user.username
@@ -219,6 +193,43 @@ async def refresh_balance(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     store_user_chat_id(username, chat_id)
 
     await update.message.reply_text('Balance refreshed!')
+
+async def mint(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    username = update.message.from_user.username
+
+    # Check if the user is authorized
+    if username != config["AUTHORIZED_USER"]:
+        await update.message.reply_text("You are not authorized to use this command.")
+        return
+
+    if len(context.args) != 1:
+        await update.message.reply_text("Usage: /mint <amount>")
+        return
+
+    amount = int(context.args[0])
+    update_balance(username, amount)
+    await update.message.reply_text(f'Minted {amount} SevenX!')
+
+async def burn(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    username = update.message.from_user.username
+
+    # Check if the user is authorized
+    if username != config["AUTHORIZED_USER"]:
+        await update.message.reply_text("You are not authorized to use this command.")
+        return
+
+    if len(context.args) != 1:
+        await update.message.reply_text("Usage: /burn <amount>")
+        return
+
+    amount = int(context.args[0])
+
+    if get_balance(username) < amount:
+        await update.message.reply_text("Insufficient balance to burn!")
+        return
+
+    update_balance(username, -amount)
+    await update.message.reply_text(f'Burned {amount} SevenX!')
 
 # Main function
 def main():
@@ -231,15 +242,12 @@ def main():
     application.add_handler(CommandHandler("balance", balance))
     application.add_handler(CommandHandler("claim", claim))
     application.add_handler(CommandHandler("request", request))
+    application.add_handler(CommandHandler("refresh", refresh_balance))
     application.add_handler(CommandHandler("mint", mint))
     application.add_handler(CommandHandler("burn", burn))
-    application.add_handler(CommandHandler("refresh", refresh_balance))
     application.add_handler(CallbackQueryHandler(handle_callback))
 
     application.run_polling()
-
-if __name__ == '__main__':
-    main()
 
 if __name__ == '__main__':
     main()
