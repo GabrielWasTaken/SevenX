@@ -97,6 +97,15 @@ def save_transactions():
         for row in c.execute('SELECT sender, receiver, amount, timestamp FROM transactions'):
             f.write(f'{row[0]} -> {row[1]}: {row[2]} SevenX at {row[3]}\n')
 
+def get_total_supply():
+    c.execute('SELECT SUM(balance) FROM users')
+    result = c.fetchone()
+    return result[0] if result[0] else 0
+
+def get_top_users(limit=10):
+    c.execute('SELECT username, balance FROM users ORDER BY balance DESC LIMIT ?', (limit,))
+    return c.fetchall()
+
 # Command handlers
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     username = update.message.from_user.username
@@ -235,11 +244,6 @@ async def burn(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         return
 
     amount = int(context.args[0])
-
-    if get_balance(username) < amount:
-        await update.message.reply_text("Insufficient balance to burn!")
-        return
-
     update_balance(username, -amount)
     await update.message.reply_text(f'Burned {amount} SevenX!')
 
@@ -258,6 +262,20 @@ async def lookup(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     else:
         await update.message.reply_text("User not found.")
 
+async def supply(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    total_supply = get_total_supply()
+    await update.message.reply_text(f'Total supply of SevenX: {total_supply}.')
+
+async def top(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    top_users = get_top_users()
+    if top_users:
+        message = "Top users by balance:\n\n"
+        for i, (username, balance) in enumerate(top_users, start=1):
+            message += f"{i}. {username}: {balance} SevenX\n"
+        await update.message.reply_text(message)
+    else:
+        await update.message.reply_text("No users found.")
+
 # Main function
 def main():
     # Use config file for the bot token and authorized user
@@ -273,6 +291,8 @@ def main():
     application.add_handler(CommandHandler("mint", mint))
     application.add_handler(CommandHandler("burn", burn))
     application.add_handler(CommandHandler("lookup", lookup))
+    application.add_handler(CommandHandler("supply", supply))
+    application.add_handler(CommandHandler("top", top))
     application.add_handler(CallbackQueryHandler(handle_callback))
 
     application.run_polling()
