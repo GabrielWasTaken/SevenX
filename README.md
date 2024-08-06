@@ -9,7 +9,6 @@ SevenX is a virtual currency for Telegram that allows users to send and receive 
 - **Send and Receive SevenX**: Easily send SevenX tokens to other users on Telegram.
 - **Check Balance**: Quickly check your SevenX balance with a simple command.
 - **Transaction History**: View your recent transactions.
-- **Top Up**: Claim 5 free SevenX every week.
 - **Request SevenX**: Request SevenX from other users.
 
 ## Official Telegram Bot
@@ -51,15 +50,10 @@ You can use the official Telegram bot at https://t.me/SevenXC_bot
     - `/start` - Start the bot and initialize your wallet.
     - `/balance` - Check your SevenX balance.
     - `/pay <username> <amount>` - Send SevenX to another user.
-    - `/history` - View your transaction history.
-    - `/claim` - Claim 5 free SevenX every week.
+    - `/explorer` - See recent transactions.
+    - `/claim` - Claim 5 free SevenX.
     - `/request <username> <amount>` - Request SevenX to another user.
-
-### Forks
-
-If you want to make a fork please use another name and don't claim that your bot is the official SevenX bot.
-
-Consider contributing to the official SevenX bot instead of making a fork. If you don't like something feel free to open an issue.
+    - `/lookup <username>` - See other people's balance.
 
 ## Contributing
 
@@ -87,7 +81,7 @@ If you would like to support the development of the SevenX Telegram bot, you can
 
 **Banano (BAN) Donation Address**: `ban_3dgdgzh87s3zdppinfkx1srytrhjkw36rkxrk96yecbkfsm991uzxji7y4f6`
 
-**Ethereum (ETH) Donation Address**: `0x465a1485a2abD982803EDd9a046fCFaD961256a5`
+**Ethereum (ETH) Donation Address**: `0x20d3F8a7d08aCEaeC6ED4002CCd0aB51EEeC785f`
 
 Thank you for your support!
 
