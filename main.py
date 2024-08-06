@@ -1,6 +1,7 @@
 import sqlite3
 import os
 import json
+from datetime import datetime
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.constants import ParseMode
 from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandler, ContextTypes
@@ -45,9 +46,6 @@ c.execute('''
 ''')
 conn.commit()
 
-# Variables to track burned coins
-total_burned = 0
-
 # Helper functions
 def get_balance(username):
     c.execute('SELECT balance FROM users WHERE username = ?', (username,))
@@ -60,30 +58,12 @@ def update_balance(username, amount):
     else:
         c.execute('UPDATE users SET balance = balance + ? WHERE username = ?', (amount, username))
     conn.commit()
-    update_balance_file()
+    save_balances()
 
 def record_transaction(sender, receiver, amount):
     c.execute('INSERT INTO transactions (sender, receiver, amount) VALUES (?, ?, ?)', (sender, receiver, amount))
     conn.commit()
-    update_transactions_file()
-
-def update_balance_file():
-    balances = {}
-    c.execute('SELECT username, balance FROM users')
-    for row in c.fetchall():
-        balances[row[0]] = row[1]
-    
-    with open('balances.txt', 'w') as f:
-        for user, balance in balances.items():
-            f.write(f'{user}: {balance} SevenX\n')
-        f.write(f'\nTotal burned: {total_burned} SevenX\n')
-
-def update_transactions_file():
-    with open('transactions.txt', 'w') as f:
-        c.execute('SELECT sender, receiver, amount, timestamp FROM transactions ORDER BY timestamp DESC')
-        transactions = c.fetchall()
-        for trans in transactions:
-            f.write(f'{trans[3]}: {trans[0]} -> {trans[1]} | {trans[2]} SevenX\n')
+    save_transactions()
 
 def store_pending_transaction(sender, receiver, amount):
     c.execute('INSERT INTO pending_transactions (sender, receiver, amount) VALUES (?, ?, ?)', (sender, receiver, amount))
@@ -107,14 +87,28 @@ def get_user_chat_id(username):
     result = c.fetchone()
     return result[0] if result else None
 
-def apply_transaction_fee(amount):
-    global total_burned
-    fee = amount * 0.02
-    burned = fee / 2
-    privileged_user_share = fee - burned
-    total_burned += burned
+def save_balances():
+    with open('balances.txt', 'w') as f:
+        for row in c.execute('SELECT username, balance FROM users'):
+            f.write(f'{row[0]}: {row[1]} SevenX\n')
 
-    return amount - fee, privileged_user_share, burned
+def save_transactions():
+    with open('transactions.txt', 'w') as f:
+        for row in c.execute('SELECT sender, receiver, amount, timestamp FROM transactions'):
+            f.write(f'{row[0]} -> {row[1]}: {row[2]} SevenX at {row[3]}\n')
+
+def get_total_supply():
+    c.execute('SELECT SUM(balance) FROM users')
+    result = c.fetchone()
+    return result[0] if result[0] else 0
+
+def get_top_users(limit=10):
+    c.execute('SELECT username, balance FROM users ORDER BY balance DESC LIMIT ?', (limit,))
+    return c.fetchall()
+
+def get_transactions(limit=10, offset=0):
+    c.execute('SELECT sender, receiver, amount, timestamp FROM transactions ORDER BY timestamp DESC LIMIT ? OFFSET ?', (limit, offset))
+    return c.fetchall()
 
 # Command handlers
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -134,6 +128,7 @@ async def pay(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
     sender = update.message.from_user.username
     receiver, amount = context.args
+    receiver = receiver.lstrip('@')  # Eliminar el "@" si está presente
     amount = int(amount)
 
     if get_balance(sender) < amount:
@@ -162,35 +157,25 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
 
     if action == 'confirm':
         sender, receiver, amount = get_pending_transaction(trans_id)
-        print(f"Transaction confirmed: {sender} pays {receiver} {amount} SevenX")  # Debugging line
-
-        # Apply transaction fee
-        amount_after_fee, privileged_user_share, burned = apply_transaction_fee(amount)
-
         update_balance(sender, -amount)
-        print(f"Balance updated for sender {sender}")  # Debugging line
-        update_balance(receiver, amount_after_fee)
-        print(f"Balance updated for receiver {receiver}")  # Debugging line
-        update_balance(config["PRIVILEGED_USER"], privileged_user_share)
-        print(f"Balance updated for privileged user {config['PRIVILEGED_USER']}")  # Debugging line
-        record_transaction(sender, receiver, amount_after_fee)
+        update_balance(receiver, amount)
+        record_transaction(sender, receiver, amount)
         delete_pending_transaction(trans_id)
 
+        await context.bot.delete_message(chat_id=query.message.chat_id, message_id=query.message.message_id)
         await context.bot.send_message(chat_id=query.message.chat_id,
-                                       text=f'Payment of {amount_after_fee} SevenX to {receiver} confirmed!\nTransaction details:\nSender: {sender}\nReceiver: {receiver}\nAmount: {amount_after_fee} SevenX',
+                                       text=f'Payment of {amount} SevenX to {receiver} confirmed!\nTransaction details:\nSender: {sender}\nReceiver: {receiver}\nAmount: {amount} SevenX',
                                        parse_mode=ParseMode.MARKDOWN)
 
         # Send a message to the receiver
         receiver_chat_id = get_user_chat_id(receiver)
         if receiver_chat_id:
             await context.bot.send_message(chat_id=receiver_chat_id,
-                                           text=f'You have received a payment of {amount_after_fee} SevenX from {sender}.\nTransaction details:\nSender: {sender}\nAmount: {amount_after_fee} SevenX')
-
-        # Delete the confirmation message
-        await query.message.delete()
+                                           text=f'You have received a payment of {amount} SevenX from {sender}.\nTransaction details:\nSender: {sender}\nAmount: {amount} SevenX')
 
     elif action == 'cancel':
         delete_pending_transaction(trans_id)
+        await context.bot.delete_message(chat_id=query.message.chat_id, message_id=query.message.message_id)
         await context.bot.send_message(chat_id=query.message.chat_id, text='Payment canceled!')
 
 async def balance(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -207,10 +192,48 @@ async def claim(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     store_user_chat_id(username, chat_id)
 
     if get_balance(username) == 0:
-        update_balance(username, 5)
-        await update.message.reply_text('Claimed 5 SevenX!')
+        update_balance(username, 50)
+        await update.message.reply_text('Claimed 50 SevenX!')
     else:
-        await update.message.reply_text('You have already claimed your 5 SevenX!')
+        await update.message.reply_text('You have already claimed your 50 SevenX!')
+
+async def request(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    username = update.message.from_user.username
+    chat_id = update.message.chat_id
+    store_user_chat_id(username, chat_id)
+
+    if len(context.args) != 2:
+        await update.message.reply_text('Usage: /request <username> <amount>')
+        return
+
+    requester = update.message.from_user.username
+    target, amount = context.args
+    amount = int(amount)
+
+    await context.bot.send_message(chat_id=update.effective_chat.id, text=f'This command is not longer working and will be removed in future versions of the bot')
+
+async def refresh_balance(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    username = update.message.from_user.username
+    chat_id = update.message.chat_id
+    store_user_chat_id(username, chat_id)
+
+    await update.message.reply_text('Balance refreshed!')
+
+async def mint(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    username = update.message.from_user.username
+
+    # Check if the user is authorized
+    if username != config["AUTHORIZED_USER"]:
+        await update.message.reply_text("You are not authorized to use this command.")
+        return
+
+    if len(context.args) != 1:
+        await update.message.reply_text("Usage: /mint <amount>")
+        return
+
+    amount = int(context.args[0])
+    update_balance(username, amount)
+    await update.message.reply_text(f'Minted {amount} SevenX!')
 
 async def burn(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     username = update.message.from_user.username
@@ -241,24 +264,55 @@ async def lookup(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         balance = result[0]
         await update.message.reply_text(f"User: {username}\nBalance: {balance} SevenX")
     else:
-        await update.message.reply_text(f"User {username} not found.")
+        await update.message.reply_text("User not found.")
 
 async def supply(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    c.execute('SELECT SUM(balance) FROM users')
-    total_supply = c.fetchone()[0] or 0
-    await update.message.reply_text(f"Total supply of SevenX: {total_supply} SevenX")
+    total_supply = get_total_supply()
+    await update.message.reply_text(f'Total supply of SevenX: {total_supply}.')
 
 async def top(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    c.execute('SELECT username, balance FROM users ORDER BY balance DESC LIMIT 10')
-    top_users = c.fetchall()
-    response = "Top 10 Users by Balance:\n\n"
-    for user, balance in top_users:
-        response += f"{user}: {balance} SevenX\n"
-    await update.message.reply_text(response)
+    top_users = get_top_users()
+    if top_users:
+        message = "Top users by balance:\n\n"
+        for i, (username, balance) in enumerate(top_users, start=1):
+            message += f"{i}. {username}: {balance} SevenX\n"
+        await update.message.reply_text(message)
+    else:
+        await update.message.reply_text("No users found.")
+
+async def explorer(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    limit = 10
+    offset = 0 if not context.args else int(context.args[0])
+    
+    transactions = get_transactions(limit=limit, offset=offset)
+    
+    if transactions:
+        message = "Recent transactions:\n\n"
+        for sender, receiver, amount, timestamp in transactions:
+            message += f"{timestamp}: {sender} -> {receiver} | {amount} SevenX\n"
+        
+        # Option to load more transactions
+        keyboard = [
+            [InlineKeyboardButton("Load more", callback_data=f'explorer_{offset + limit}')]
+        ]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        await update.message.reply_text(message, reply_markup=reply_markup)
+    else:
+        await update.message.reply_text("No more transactions available.")
+
+async def handle_explorer_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    query = update.callback_query
+    await query.answer()
+
+    callback_data = query.data.split('_')
+    offset = int(callback_data[1])
+
+    await explorer(update, context)
+
 
 # Main function
 def main():
-    # Use config file for the bot token
+    # Use config file for the bot token and authorized user
     TOKEN = config["TELEGRAM_BOT_TOKEN"]
     application = ApplicationBuilder().token(TOKEN).build()
 
@@ -266,11 +320,16 @@ def main():
     application.add_handler(CommandHandler("pay", pay))
     application.add_handler(CommandHandler("balance", balance))
     application.add_handler(CommandHandler("claim", claim))
+    application.add_handler(CommandHandler("request", request))
+    application.add_handler(CommandHandler("refresh", refresh_balance))
+    application.add_handler(CommandHandler("mint", mint))
     application.add_handler(CommandHandler("burn", burn))
     application.add_handler(CommandHandler("lookup", lookup))
     application.add_handler(CommandHandler("supply", supply))
     application.add_handler(CommandHandler("top", top))
+    application.add_handler(CommandHandler("explorer", explorer))
     application.add_handler(CallbackQueryHandler(handle_callback))
+    application.add_handler(CallbackQueryHandler(handle_explorer_callback))
 
     application.run_polling()
 
