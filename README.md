@@ -75,13 +75,19 @@ If you encounter any issues or have any questions, feel free to open an issue.
 
 ## Donations
 
-If you would like to support the development of the SevenX Telegram bot, you can send Nano (XNO), Banano (BAN) and Ethereum (ETH) donations to the following address:
+If you would like to support the development of the SevenX Telegram bot, you can send crypto donations to the following address:
 
-**Nano (XNO) Donation Address**: `nano_18k48z84medbxyd4hzbibu86ibfhc3mi5cpshoxedbtkmryokwa1ags3pyhy`
+**Nano Donation Address**: `nano_18k48z84medbxyd4hzbibu86ibfhc3mi5cpshoxedbtkmryokwa1ags3pyhy`
 
-**Banano (BAN) Donation Address**: `ban_3dgdgzh87s3zdppinfkx1srytrhjkw36rkxrk96yecbkfsm991uzxji7y4f6`
+**Banano Donation Address**: `ban_3dgdgzh87s3zdppinfkx1srytrhjkw36rkxrk96yecbkfsm991uzxji7y4f6`
 
-**Ethereum (ETH) Donation Address**: `0x20d3F8a7d08aCEaeC6ED4002CCd0aB51EEeC785f`
+**Ethereum Donation Address**: `0x20d3F8a7d08aCEaeC6ED4002CCd0aB51EEeC785f`
+
+**Bitcoin Donation Address**: `bc1qmcqptr8f8la5g0mjmggvdrwefpzu6ee0ajjcfj`
+
+**Solana Donation Address**: `SHzhPcuemJtoZMr1VJsTYMK6M4f8HHsDUiF5yoM1jf6`
+
+**Dogecoin Donation Address**: `DD6BWbb2Ugn54GZidwGX8STwuhjHgyuDaM`
 
 Thank you for your support!
 
